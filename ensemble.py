@@ -158,3 +158,56 @@ class EnsembleManager:
         # Soft update (Exponential Moving Average of weights) to prevent jumping
         alpha = 0.2 # Smoothing factor
         self.weights = (1 - alpha) * self.weights + alpha * new_weights
+
+    def predict_stream_generator(self, X_test, y_test, scaler_y):
+        """
+        Yields predictions step-by-step for real-time visualization.
+        """
+        actuals = scaler_y.inverse_transform(y_test.reshape(-1, 1)).flatten()
+        
+        # History of individual model predictions (inverse transformed)
+        model_preds_history = [[] for _ in range(self.size)]
+        
+        print("Starting stream generator...")
+        
+        for t in range(len(X_test)):
+            # Record current weights BEFORE update
+            current_weights = self.weights.copy()
+            
+            # Current input
+            x_t = torch.FloatTensor(X_test[t]).unsqueeze(0)
+            
+            # 1. Get predictions from all models
+            current_preds = []
+            for i, model in enumerate(self.models):
+                model.eval()
+                with torch.no_grad():
+                    pred = model(x_t).item()
+                    pred_inv = scaler_y.inverse_transform([[pred]])[0][0]
+                    current_preds.append(pred_inv)
+                    model_preds_history[i].append(pred_inv)
+            
+            current_preds = np.array(current_preds)
+            
+            # 2. Ensemble Predictions
+            ens_mean = np.mean(current_preds)
+            adaptive_pred = np.sum(current_preds * self.weights)
+            best_idx = np.argmax(self.weights)
+            best_expert_pred = current_preds[best_idx]
+            
+            # 3. Observe Actual
+            actual = actuals[t]
+            
+            # Yield results BEFORE updating weights (so we see prediction based on past info)
+            yield {
+                "step": t,
+                "adaptive": adaptive_pred,
+                "ensemble_mean": ens_mean,
+                "best_expert": best_expert_pred,
+                "actual": actual,
+                "weights": current_weights,
+                "model_preds": current_preds
+            }
+            
+            # 4. Update Weights for NEXT step
+            self._update_weights(current_preds, actual)
