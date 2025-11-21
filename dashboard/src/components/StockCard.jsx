@@ -1,9 +1,28 @@
 import React, { useState } from 'react';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine, Scatter } from 'recharts';
 import { motion } from 'framer-motion';
-import { Eye, BarChart2 } from 'lucide-react';
+import { Eye, BarChart2, Wallet, TrendingUp } from 'lucide-react';
 
-const StockCard = ({ ticker, data, status, logs }) => {
+const CustomDot = (props) => {
+  const { cx, cy, payload } = props;
+  if (!payload.agent_action || payload.agent_action === 'HOLD') return null;
+
+  const isBuy = payload.agent_action === 'BUY';
+  const color = isBuy ? '#22c55e' : '#ef4444';
+  const size = Math.min(payload.agent_amount * 2, 20) + 4; // Scale size
+
+  return (
+    <svg x={cx - size / 2} y={cy - size / 2} width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      {isBuy ? (
+        <path d="M12 2L2 22h20L12 2z" /> // Triangle Up
+      ) : (
+        <path d="M12 22L2 2h20L12 22z" /> // Triangle Down
+      )}
+    </svg>
+  );
+};
+
+const StockCard = ({ ticker, data, status, logs, initialCapital }) => {
   const [view, setView] = useState('prediction'); // 'prediction' or 'weights'
   const latest = data[data.length - 1] || {};
   const error = latest.actual && latest.adaptive ? latest.adaptive - latest.actual : 0;
@@ -29,7 +48,7 @@ const StockCard = ({ ticker, data, status, logs }) => {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-5 flex flex-col h-[450px] shadow-2xl relative overflow-hidden group"
+      className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-5 flex flex-col h-[500px] shadow-2xl relative overflow-hidden group"
     >
       {/* Gradient Glow */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-50" />
@@ -48,6 +67,32 @@ const StockCard = ({ ticker, data, status, logs }) => {
           </div>
         )}
       </div>
+
+      {/* Agent Stats */}
+      {latest.agent_balance !== undefined && (
+        <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-800/30 p-2 rounded-xl border border-slate-700/50">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-green-500/20 rounded-lg text-green-400"><Wallet size={14} /></div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase font-bold">Total Value</div>
+              <div className="text-sm font-mono font-bold">${latest.portfolio_value.toFixed(0)}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-500/20 rounded-lg text-blue-400"><TrendingUp size={14} /></div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase font-bold">Return</div>
+              <div className={`text-sm font-mono font-bold ${latest.portfolio_value >= initialCapital ? 'text-green-400' : 'text-red-400'}`}>
+                {latest.portfolio_value >= initialCapital ? '+' : ''}
+                ${(latest.portfolio_value - initialCapital).toFixed(0)}
+                <span className="text-[10px] ml-1 opacity-70">
+                  ({((latest.portfolio_value - initialCapital) / initialCapital * 100).toFixed(2)}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 bg-slate-800/50 p-1 rounded-lg w-fit">
@@ -83,6 +128,11 @@ const StockCard = ({ ticker, data, status, logs }) => {
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc', borderRadius: '12px' }}
                 itemStyle={{ color: '#f8fafc' }}
+                formatter={(value, name, props) => {
+                  if (name === 'agent_action') return [value, 'Action'];
+                  if (name === 'agent_amount') return [value, 'Amount'];
+                  return [parseFloat(value).toFixed(2), name];
+                }}
               />
               <Area
                 type="monotone"
@@ -106,6 +156,15 @@ const StockCard = ({ ticker, data, status, logs }) => {
               {latest.adaptive && (
                 <ReferenceDot x={latest.date} y={latest.adaptive} r={6} fill="#ef4444" stroke="white" strokeWidth={2} />
               )}
+
+              {/* Agent Trade Markers */}
+              <Line
+                dataKey="actual"
+                stroke="none"
+                dot={<CustomDot />}
+                isAnimationActive={false}
+                activeDot={false}
+              />
             </AreaChart>
           ) : (
             <AreaChart data={weightsData} stackOffset="expand">

@@ -15,6 +15,22 @@ const Dashboard = () => {
         shouldReconnect: (closeEvent) => true,
     });
 
+    const [config, setConfig] = useState(null);
+
+    useEffect(() => {
+        fetchConfig();
+    }, []);
+
+    const fetchConfig = async () => {
+        try {
+            const res = await fetch('http://localhost:8000/config');
+            const data = await res.json();
+            setConfig(data);
+        } catch (err) {
+            console.error("Failed to fetch config", err);
+        }
+    };
+
     useEffect(() => {
         if (lastMessage !== null) {
             const msg = JSON.parse(lastMessage.data);
@@ -126,6 +142,7 @@ const Dashboard = () => {
                             data={stockData[ticker] || []}
                             status={stockStatus[ticker]}
                             logs={stockLogs[ticker] || []}
+                            initialCapital={config?.agent?.initial_capital || 10000}
                         />
                     ))}
                 </AnimatePresence>

@@ -33,7 +33,14 @@ const ConfigPanel = ({ onRun, onReset }) => {
                 epochs: parseInt(config.training.epochs),
                 learning_rate: parseFloat(config.training.learning_rate),
                 sleep: parseFloat(config.training.sleep || 0.1),
-                volatility_threshold: parseFloat(config.volatility.threshold)
+                volatility_threshold: parseFloat(config.volatility.threshold),
+                // Agent Config
+                initial_capital: parseFloat(config.agent.initial_capital),
+                min_trade_amount: parseInt(config.agent.min_trade_amount),
+                max_trade_amount: parseInt(config.agent.max_trade_amount),
+                buy_threshold: parseFloat(config.agent.buy_threshold),
+                sell_threshold: parseFloat(config.agent.sell_threshold),
+                stop_loss: parseFloat(config.agent.stop_loss)
             });
             setIsOpen(false);
         } catch (err) {
@@ -195,6 +202,59 @@ const ConfigPanel = ({ onRun, onReset }) => {
                                                 className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
                                             />
                                             <span className="text-white font-mono w-12 text-right">{(config.volatility.threshold * 100).toFixed(0)}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Agent Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-green-400 border-b border-slate-800 pb-2">
+                                        <span className="text-xs font-bold uppercase tracking-wider">Trading Agent</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-slate-400 text-sm mb-1">Initial Capital</label>
+                                            <input
+                                                type="number"
+                                                value={config.agent.initial_capital}
+                                                onChange={(e) => handleChange('agent', 'initial_capital', e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-slate-400 text-sm mb-1">Stop Loss</label>
+                                            <div className="flex gap-2 items-center">
+                                                <input
+                                                    type="range"
+                                                    min="0" max="0.1" step="0.005"
+                                                    value={config.agent.stop_loss}
+                                                    onChange={(e) => handleChange('agent', 'stop_loss', e.target.value)}
+                                                    className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                                />
+                                                <span className="text-white font-mono w-12 text-right">{(config.agent.stop_loss * 100).toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-slate-400 text-sm mb-1">Buy Threshold</label>
+                                            <input
+                                                type="number"
+                                                step="0.001"
+                                                value={config.agent.buy_threshold}
+                                                onChange={(e) => handleChange('agent', 'buy_threshold', e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-slate-400 text-sm mb-1">Sell Threshold</label>
+                                            <input
+                                                type="number"
+                                                step="0.001"
+                                                value={config.agent.sell_threshold}
+                                                onChange={(e) => handleChange('agent', 'sell_threshold', e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                                            />
                                         </div>
                                     </div>
                                 </div>
